@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const sourceDir = new URL('../data-src/Top/', import.meta.url);
+const sourceDir = new URL('../songs/', import.meta.url);
 const publicDir = new URL('../dist/', import.meta.url);
 const songsDir = new URL('../dist/songs/', import.meta.url);
 fs.rmSync(songsDir, { recursive: true, force: true });
