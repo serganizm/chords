@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#455dff">
+  <meta name="description" content="Личная офлайн-библиотека песен и аккордов">
+  <title>Мои аккорды</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button id="backBtn" class="icon-btn hidden" aria-label="Назад">‹</button>
+    <div class="brand"><span class="brand-icon">♪</span><span id="pageTitle">Мои аккорды</span></div>
+    <div class="header-actions">
+      <button id="updateBtn" class="header-control" aria-label="Обновить библиотеку" title="Обновить"><span class="header-control-icon">↻</span><span class="header-control-label">Обновить</span></button>
+      <button id="wakeBtn" class="header-control" aria-label="Не выключать экран" title="Не выключать экран"><span id="wakeIcon" class="header-control-icon">◉</span><span class="header-control-label">Экран</span></button>
+      <button id="themeBtn" class="header-control" aria-label="Сменить тему" title="Сменить тему"><span id="themeIcon" class="header-control-icon">☾</span><span class="header-control-label">Тема</span></button>
+    </div>
+  </header>
+
+  <main id="app" class="shell">
+    <section id="libraryView">
+      <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
+      <div class="summary"><span id="summaryText"></span><span id="offlineStatus" class="status">Загрузка библиотеки…</span></div>
+      <div id="libraryList" class="list"></div>
+    </section>
+
+    <section id="songView" class="song-view hidden">
+      <div class="song-heading">
+        <div><p id="songArtist" class="eyebrow"></p><h1 id="songTitle"></h1></div>
+        <button id="favoriteBtn" class="favorite" aria-label="Добавить в избранное">☆</button>
+      </div>
+      <div class="controls" aria-label="Настройки песни">
+        <div class="control-group"><span>Тональность</span><button id="transposeDown">−</button><strong id="transposeValue">0</strong><button id="transposeUp">+</button></div>
+        <div class="control-group"><span>Текст</span><button id="fontDown">A−</button><button id="fontUp">A+</button></div>
+        <button id="editSongBtn" class="edit-song-btn">✎ Редактировать</button>
+      </div>
+      <div id="localEditStatus" class="local-edit-status hidden">Изменено на этом устройстве</div>
+      <div id="songContent" class="song-content"></div>
+      <div class="scroll-dock">
+        <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
+        <label class="speed-control"><span>Скорость <b id="speedValue">3</b></span><input id="speedRange" type="range" min="1" max="8" value="3"></label>
+      </div>
+    </section>
+  </main>
+
+  <div id="editorDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="editor-panel">
+      <div class="editor-heading"><div><p class="eyebrow">Локальное редактирование</p><h2 id="editorTitle">Редактировать песню</h2></div><button id="editorClose" class="icon-btn" aria-label="Закрыть">×</button></div>
+      <p class="editor-help">Изменения сохранятся только на этом устройстве и будут доступны офлайн.</p>
+      <textarea id="songEditor" spellcheck="false" aria-label="Текст песни с аккордами"></textarea>
+      <div class="editor-actions">
+        <button id="restoreSongBtn" class="secondary-btn">Вернуть исходный текст</button>
+        <span class="editor-spacer"></span>
+        <button id="editorCancel" class="secondary-btn">Отмена</button>
+        <button id="editorSave" class="primary-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
