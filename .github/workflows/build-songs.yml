@@ -1,0 +1,42 @@
+name: Build song catalog
+
+on:
+  push:
+    paths:
+      - 'songs/**'
+      - 'data-src/Top/**'
+      - 'scripts/build-songs.mjs'
+      - '.github/workflows/build-songs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Migrate the song source directory
+        shell: bash
+        run: |
+          if [ -d data-src/Top ] && [ ! -d songs ]; then
+            mv data-src/Top songs
+            rmdir data-src
+          fi
+          sed -i "s#../data-src/Top/#../songs/#" scripts/build-songs.mjs
+
+      - name: Build catalog and song files
+        run: node scripts/build-songs.mjs
+
+      - name: Commit generated files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Build song catalog"
+            git push
+          fi
