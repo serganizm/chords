@@ -42,7 +42,14 @@
       <div id="songContent" class="song-content"></div>
       <div class="scroll-dock">
         <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
-        <label class="speed-control"><span>Скорость <b id="speedValue">1</b></span><input id="speedRange" type="range" min="1" max="8" value="1"></label>
+        <div class="speed-control">
+          <span>Скорость <b id="speedValue">1</b></span>
+          <div class="speed-slider">
+            <button type="button" id="speedDown" class="speed-btn" aria-label="Медленнее">−</button>
+            <input id="speedRange" type="range" min="1" max="8" value="1">
+            <button type="button" id="speedUp" class="speed-btn" aria-label="Быстрее">+</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
