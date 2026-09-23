@@ -92,6 +92,13 @@
       </div>
     </div>
   </div>
+  <div id="signInDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="signInTitle">
+    <div class="editor-panel sign-in-panel">
+      <div class="editor-heading"><div><p class="eyebrow">Аккаунт</p><h2 id="signInTitle">Вход через Google</h2></div><button id="signInClose" class="icon-btn" aria-label="Закрыть">×</button></div>
+      <p class="editor-help">Войдите аккаунтом, которому разрешено менять библиотеку.</p>
+      <div id="googleBtn" class="google-btn"></div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="app.js"></script>
