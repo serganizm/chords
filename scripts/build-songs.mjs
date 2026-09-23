@@ -28,7 +28,7 @@ const songs = files.map((filename, index) => {
   fs.mkdirSync(targetDir, { recursive: true });
   fs.writeFileSync(path.join(targetDir, songFile), text + '\n');
   const version = crypto.createHash('sha256').update(text).digest('hex').slice(0, 12);
-  return { id: index + 1, artist, title, file: relativeFile, version };
+  return { id: index + 1, artist, title, file: relativeFile, source: filename, version };
 });
 
 const catalogVersion = crypto.createHash('sha256').update(JSON.stringify(songs)).digest('hex').slice(0, 12);

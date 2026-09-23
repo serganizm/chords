@@ -1,0 +1,7 @@
+name = "chords-api"
+main = "index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+GOOGLE_CLIENT_ID = "476084176075-qvv8tvb7869rb21njtoct7vcfctfb7rd.apps.googleusercontent.com"
+GITHUB_REPO = "serganizm/chords"

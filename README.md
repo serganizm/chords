@@ -20,3 +20,9 @@ workflow сайт будет доступен по адресу:
 ```bash
 node scripts/build-songs.mjs
 ```
+
+## Вход Google и публикация песен
+
+Добавлять и править песни в GitHub может только аккаунт из `ALLOWED_EMAILS`.
+API — Cloudflare Worker в [`worker/`](worker/). После деплоя вставьте его URL
+в `dist/index.html` в мета-тег `chords-api`. Инструкция: [`worker/README.md`](worker/README.md).

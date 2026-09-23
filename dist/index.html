@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#455dff">
   <meta name="description" content="Личная офлайн-библиотека песен и аккордов">
+  <meta name="chords-api" content="https://chords-api.serganizm.workers.dev">
+  <meta name="google-signin-client_id" content="476084176075-qvv8tvb7869rb21njtoct7vcfctfb7rd.apps.googleusercontent.com">
   <title>Мои аккорды</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -16,12 +18,15 @@
     <div class="brand"><span class="brand-icon">♪</span><span id="pageTitle">Мои аккорды</span></div>
     <div class="header-actions">
       <button id="updateBtn" class="header-control" aria-label="Обновить библиотеку" title="Обновить"><span class="header-control-icon">↻</span><span class="header-control-label">Обновить</span></button>
+      <button id="addSongBtn" class="header-control hidden" aria-label="Добавить песню" title="Добавить песню"><span class="header-control-icon">＋</span><span class="header-control-label">Песня</span></button>
       <button id="wakeBtn" class="header-control" aria-label="Не выключать экран" title="Не выключать экран"><span id="wakeIcon" class="header-control-icon">◉</span><span class="header-control-label">Экран</span></button>
       <div id="accentWrap" class="accent-wrap">
         <button id="accentBtn" class="header-control" aria-label="Цвет" title="Цвет" aria-haspopup="true" aria-expanded="false"><span class="accent-dot"></span><span class="header-control-label">Цвет</span></button>
         <div id="accentMenu" class="accent-menu hidden" role="menu" aria-label="Цветовой акцент"></div>
       </div>
       <button id="themeBtn" class="header-control" aria-label="Сменить тему" title="Сменить тему"><span id="themeIcon" class="header-control-icon">☾</span><span class="header-control-label">Тема</span></button>
+      <button id="signInBtn" class="header-control" aria-label="Войти" title="Войти"><span class="header-control-icon">👤</span><span class="header-control-label">Войти</span></button>
+      <button id="signOutBtn" class="header-control hidden" aria-label="Выйти" title="Выйти"><span class="header-control-icon">⎋</span><span class="header-control-label">Выйти</span></button>
     </div>
   </header>
 
@@ -66,12 +71,29 @@
       <div class="editor-actions">
         <button id="restoreSongBtn" class="secondary-btn">Вернуть исходный текст</button>
         <span class="editor-spacer"></span>
+        <button id="editorPublish" class="secondary-btn hidden">В библиотеку</button>
         <button id="editorCancel" class="secondary-btn">Отмена</button>
         <button id="editorSave" class="primary-btn">Сохранить</button>
       </div>
     </div>
   </div>
+
+  <div id="addSongDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="addSongTitle">
+    <div class="editor-panel">
+      <div class="editor-heading"><div><p class="eyebrow">Новая песня</p><h2 id="addSongTitle">Добавить в библиотеку</h2></div><button id="addSongClose" class="icon-btn" aria-label="Закрыть">×</button></div>
+      <p class="editor-help">Песня сохранится в GitHub как файл в папке songs. Через минуту нажмите Обновить.</p>
+      <label class="editor-field">Исполнитель<input id="addSongArtist" type="text" autocomplete="off"></label>
+      <label class="editor-field">Название<input id="addSongName" type="text" autocomplete="off"></label>
+      <textarea id="addSongText" spellcheck="false" aria-label="Текст песни с аккордами"></textarea>
+      <div class="editor-actions">
+        <span class="editor-spacer"></span>
+        <button id="addSongCancel" class="secondary-btn">Отмена</button>
+        <button id="addSongSave" class="primary-btn">Добавить</button>
+      </div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="app.js"></script>
 </body>
 </html>
