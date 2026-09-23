@@ -4,6 +4,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8765',
 ];
 const MAX_TEXT = 200000;
+const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+const OIDC_AUDIENCE = 'https://chords-api.serganizm.workers.dev';
 
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -56,6 +58,45 @@ function allowedEmails(env) {
     .filter(Boolean);
 }
 
+function b64urlJson(value) {
+  const pad = value.length % 4 === 0 ? '' : '='.repeat(4 - (value.length % 4));
+  return JSON.parse(atob(value.replace(/-/g, '+').replace(/_/g, '/') + pad));
+}
+
+function b64urlBytes(value) {
+  const pad = value.length % 4 === 0 ? '' : '='.repeat(4 - (value.length % 4));
+  const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function verifyGithubOidc(token, env) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) throw new Error('Недействительный вход');
+  const header = b64urlJson(parts[0]);
+  const payload = b64urlJson(parts[1]);
+  if (payload.iss !== OIDC_ISSUER) throw new Error('Недействительный вход');
+  const audience = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (!audience.includes(OIDC_AUDIENCE)) throw new Error('Недействительный вход');
+  if (payload.repository !== env.GITHUB_REPO) throw new Error('Недействительный вход');
+  if ((payload.exp || 0) * 1000 < Date.now() - 5000) throw new Error('Недействительный вход');
+  const jwks = await fetch(`${OIDC_ISSUER}/.well-known/jwks`).then(item => item.json());
+  const jwk = (jwks.keys || []).find(item => item.kid === header.kid);
+  if (!jwk) throw new Error('Недействительный вход');
+  const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlBytes(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
+  if (!ok) throw new Error('Недействительный вход');
+  return payload;
+}
+
+async function requireActions(request, env) {
+  const header = request.headers.get('Authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) throw new Error('Нужен вход');
+  await verifyGithubOidc(token, env);
+}
+
 async function verifyGoogle(idToken, clientId) {
   const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
   if (!response.ok) throw new Error('Недействительный вход');
@@ -83,7 +124,7 @@ function toBase64(text) {
 function fromBase64(content) {
   const binary = atob(String(content || '').replace(/\n/g, ''));
   const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = binary.charCodeAt(i);
   return new TextDecoder().decode(bytes);
 }
 
@@ -138,6 +179,34 @@ async function putGithubFile(env, path, text, message) {
   return { path, sha: data.content?.sha || data.commit?.sha || existing?.sha };
 }
 
+async function enqueueSong(env, song) {
+  if (!env.QUEUE) throw new Error('Очередь публикации не настроена');
+  const key = `song:${Date.now()}:${crypto.randomUUID()}`;
+  await env.QUEUE.put(key, JSON.stringify(song));
+  return key;
+}
+
+async function listQueuedSongs(env) {
+  if (!env.QUEUE) return [];
+  const listed = await env.QUEUE.list({ prefix: 'song:', limit: 20 });
+  const songs = [];
+  for (const item of listed.keys) {
+    const raw = await env.QUEUE.get(item.name);
+    if (!raw) continue;
+    const song = JSON.parse(raw);
+    songs.push({ key: item.name, ...song });
+  }
+  return songs;
+}
+
+async function ackQueuedSongs(env, keys) {
+  if (!env.QUEUE) return;
+  for (const key of keys) {
+    if (!String(key).startsWith('song:')) continue;
+    await env.QUEUE.delete(key);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -154,12 +223,29 @@ export default {
         }, 200, origin);
       }
 
+      if (request.method === 'GET' && url.pathname === '/pending') {
+        await requireActions(request, env);
+        return json({ songs: await listQueuedSongs(env) }, 200, origin);
+      }
+
+      if (request.method === 'POST' && url.pathname === '/pending') {
+        await requireActions(request, env);
+        const body = await request.json().catch(() => ({}));
+        const keys = Array.isArray(body.keys) ? body.keys : [];
+        await ackQueuedSongs(env, keys);
+        return json({ ok: true, deleted: keys.length }, 200, origin);
+      }
+
       if (request.method === 'GET' && url.pathname === '/songs') {
         const user = await requireUser(request, env);
         if (!user.allowed) return json({ error: 'Этот аккаунт не может менять библиотеку' }, 403, origin);
         const path = resolvePath({}, url);
-        const file = await getGithubFile(env, path);
-        return json({ exists: Boolean(file), path, text: file?.text || '' }, 200, origin);
+        try {
+          const file = await getGithubFile(env, path);
+          return json({ exists: Boolean(file), path, text: file?.text || '' }, 200, origin);
+        } catch {
+          return json({ exists: false, path, text: '' }, 200, origin);
+        }
       }
 
       if (request.method === 'POST' && url.pathname === '/songs') {
@@ -173,8 +259,17 @@ export default {
         if (text.length > MAX_TEXT) return json({ error: 'Текст слишком длинный' }, 400, origin);
         const path = resolvePath(body, url);
         const action = body.source ? 'Update' : 'Add';
-        await putGithubFile(env, path, text, `${action} lyrics for '${artist} - ${title}'`);
-        return json({ ok: true, path }, 200, origin);
+        const message = `${action} lyrics for '${artist} - ${title}'`;
+        const normalized = text.endsWith('\n') ? text : `${text}\n`;
+        try {
+          await putGithubFile(env, path, text, message);
+          return json({ ok: true, path, queued: false }, 200, origin);
+        } catch (error) {
+          const failed = error instanceof Error ? error.message : '';
+          if (!/отказал|не настроен|доступ/i.test(failed)) throw error;
+          await enqueueSong(env, { path, text: normalized, message, artist, title });
+          return json({ ok: true, path, queued: true }, 200, origin);
+        }
       }
 
       return json({ error: 'Not found' }, 404, origin);

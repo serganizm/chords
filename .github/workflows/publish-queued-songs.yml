@@ -1,0 +1,88 @@
+name: Publish queued songs
+
+on:
+  schedule:
+    - cron: '* * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish-queued-songs
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get OIDC token
+        id: oidc
+        run: |
+          payload=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://chords-api.serganizm.workers.dev")
+          token=$(printf '%s' "$payload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch queued songs
+        id: queue
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          curl -sS -H "Authorization: Bearer $OIDC_TOKEN" \
+            https://chords-api.serganizm.workers.dev/pending > queue.json
+          python3 - <<'PY'
+          import json
+          data = json.load(open("queue.json"))
+          songs = data.get("songs") or []
+          print(f"queued={len(songs)}")
+          open("queue.count", "w").write(str(len(songs)))
+          PY
+
+      - name: Write songs and push
+        if: ${{ hashFiles('queue.count') }}
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          count=$(cat queue.count)
+          if [ "$count" = "0" ]; then
+            echo "Queue is empty"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, pathlib
+          data = json.load(open("queue.json"))
+          keys = []
+          for song in data.get("songs") or []:
+              path = song["path"]
+              if not path.startswith("songs/") or ".." in path:
+                  raise SystemExit(f"bad path {path}")
+              pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+              text = song["text"]
+              if not text.endswith("\n"):
+                  text += "\n"
+              pathlib.Path(path).write_text(text, encoding="utf-8")
+              keys.append(song["key"])
+          json.dump({"keys": keys}, open("ack.json", "w"))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add songs
+          if git diff --cached --quiet; then
+            echo "No file changes"
+          else
+            git commit -m "Publish queued songs from the site"
+            git push
+          fi
+          curl -sS -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data @ack.json \
+            https://chords-api.serganizm.workers.dev/pending

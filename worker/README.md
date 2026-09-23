@@ -18,3 +18,6 @@ npx wrangler deploy
 Его нужно прописать в `dist/index.html` в мета-теге `chords-api`.
 
 Сейчас: `https://chords-api.serganizm.workers.dev`
+
+Если токен GitHub не может писать в репозиторий, песня попадает в очередь KV.
+Action `publish-queued-songs` забирает её по GitHub OIDC и коммитит в `songs/`.

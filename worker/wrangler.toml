@@ -6,3 +6,7 @@ compatibility_date = "2025-09-01"
 GOOGLE_CLIENT_ID = "476084176075-qvv8tvb7869rb21njtoct7vcfctfb7rd.apps.googleusercontent.com"
 GITHUB_REPO = "serganizm/chords"
 GITHUB_BRANCH = "main"
+
+[[kv_namespaces]]
+binding = "QUEUE"
+id = "ea389e2e6eeb4f3abde99a8a66a45702"
