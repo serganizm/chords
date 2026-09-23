@@ -1,0 +1,8 @@
+C     D     H
+Приве это тест текста
+D
+test
+H
+test 2
+D 
+test 3
