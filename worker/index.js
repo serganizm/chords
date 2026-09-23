@@ -40,6 +40,15 @@ function pathFromSource(source) {
   return `songs/${name}`;
 }
 
+function resolvePath(body, url) {
+  const source = body.source || url?.searchParams.get('source') || '';
+  const artist = String(body.artist || url?.searchParams.get('artist') || '').trim();
+  const title = String(body.title || url?.searchParams.get('title') || '').trim();
+  const path = source ? pathFromSource(source) : pathFromNames(artist, title);
+  if (!path.startsWith('songs/') || path.includes('..')) throw new Error('Можно писать только в songs/');
+  return path;
+}
+
 function allowedEmails(env) {
   return String(env.ALLOWED_EMAILS || '')
     .split(',')
@@ -71,26 +80,61 @@ function toBase64(text) {
   return btoa(binary);
 }
 
-async function putGithubFile(env, path, text, message) {
+function fromBase64(content) {
+  const binary = atob(String(content || '').replace(/\n/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function githubError(status, data, fallback) {
+  const detail = String(data?.message || '').replace(/\s+/g, ' ').trim();
+  if (status === 401 || status === 403) {
+    return new Error(detail ? `GitHub отказал в доступе: ${detail}` : 'GitHub отказал в доступе. Проверьте токен и право Contents: Read and write');
+  }
+  return new Error(detail || fallback);
+}
+
+async function githubFile(env, path, options = {}) {
   const [owner, repo] = String(env.GITHUB_REPO || '').split('/');
+  const branch = env.GITHUB_BRANCH || 'main';
   if (!owner || !repo || !env.GITHUB_TOKEN) throw new Error('GitHub не настроен');
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  const url = new URL(`https://api.github.com/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`);
+  if (!options.method || options.method === 'GET') url.searchParams.set('ref', branch);
   const headers = {
     Authorization: `Bearer ${env.GITHUB_TOKEN}`,
     Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'chords-worker',
+    ...options.headers,
   };
-  const existing = await fetch(url, { headers });
-  let sha;
-  if (existing.ok) sha = (await existing.json()).sha;
-  else if (existing.status !== 404) throw new Error('Не удалось прочитать файл в GitHub');
-  const put = await fetch(url, {
+  const response = await fetch(url, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+  return { response, data, branch };
+}
+
+async function getGithubFile(env, path) {
+  const { response, data } = await githubFile(env, path);
+  if (response.status === 404) return null;
+  if (!response.ok) throw githubError(response.status, data, 'Не удалось прочитать файл в GitHub');
+  return { text: fromBase64(data.content).replace(/\r\n?/g, '\n'), sha: data.sha };
+}
+
+async function putGithubFile(env, path, text, message) {
+  const normalized = text.endsWith('\n') ? text : `${text}\n`;
+  const existing = await getGithubFile(env, path);
+  const { response, data, branch } = await githubFile(env, path, {
     method: 'PUT',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, content: toBase64(text.endsWith('\n') ? text : `${text}\n`), sha }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      content: toBase64(normalized),
+      branch,
+      sha: existing?.sha,
+    }),
   });
-  if (!put.ok) throw new Error('Не удалось записать файл в GitHub');
-  return put.json();
+  if (!response.ok) throw githubError(response.status, data, 'Не удалось записать файл в GitHub');
+  return { path, sha: data.content?.sha || data.commit?.sha || existing?.sha };
 }
 
 export default {
@@ -102,7 +146,19 @@ export default {
     try {
       if (request.method === 'GET' && url.pathname === '/me') {
         const user = await requireUser(request, env);
-        return json({ email: user.email, allowed: user.allowed }, 200, origin);
+        return json({
+          email: user.email,
+          allowed: user.allowed,
+          github: Boolean(env.GITHUB_TOKEN),
+        }, 200, origin);
+      }
+
+      if (request.method === 'GET' && url.pathname === '/songs') {
+        const user = await requireUser(request, env);
+        if (!user.allowed) return json({ error: 'Этот аккаунт не может менять библиотеку' }, 403, origin);
+        const path = resolvePath({}, url);
+        const file = await getGithubFile(env, path);
+        return json({ exists: Boolean(file), path, text: file?.text || '' }, 200, origin);
       }
 
       if (request.method === 'POST' && url.pathname === '/songs') {
@@ -114,8 +170,7 @@ export default {
         const text = String(body.text || '').replace(/\r\n?/g, '\n').trim();
         if (!text) return json({ error: 'Текст песни не может быть пустым' }, 400, origin);
         if (text.length > MAX_TEXT) return json({ error: 'Текст слишком длинный' }, 400, origin);
-        const path = body.source ? pathFromSource(body.source) : pathFromNames(artist, title);
-        if (!path.startsWith('songs/') || path.includes('..')) return json({ error: 'Можно писать только в songs/' }, 400, origin);
+        const path = resolvePath(body, url);
         const action = body.source ? 'Update' : 'Add';
         await putGithubFile(env, path, text, `${action} lyrics for '${artist} - ${title}'`);
         return json({ ok: true, path }, 200, origin);
@@ -124,7 +179,7 @@ export default {
       return json({ error: 'Not found' }, 404, origin);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ошибка';
-      const status = /вход|аккаунт/i.test(message) ? 401 : 400;
+      const status = /вход|аккаунт/i.test(message) ? 401 : /отказал|не настроен/i.test(message) ? 502 : 400;
       return json({ error: message }, status, origin);
     }
   },

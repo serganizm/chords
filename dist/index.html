@@ -18,7 +18,6 @@
     <div class="brand"><span class="brand-icon">♪</span><span id="pageTitle">Мои аккорды</span></div>
     <div class="header-actions">
       <button id="updateBtn" class="header-control" aria-label="Обновить библиотеку" title="Обновить"><span class="header-control-icon">↻</span><span class="header-control-label">Обновить</span></button>
-      <button id="addSongBtn" class="header-control hidden" aria-label="Добавить песню" title="Добавить песню"><span class="header-control-icon">＋</span><span class="header-control-label">Песня</span></button>
       <button id="wakeBtn" class="header-control" aria-label="Не выключать экран" title="Не выключать экран"><span id="wakeIcon" class="header-control-icon">◉</span><span class="header-control-label">Экран</span></button>
       <div id="accentWrap" class="accent-wrap">
         <button id="accentBtn" class="header-control" aria-label="Цвет" title="Цвет" aria-haspopup="true" aria-expanded="false"><span class="accent-dot"></span><span class="header-control-label">Цвет</span></button>
@@ -33,7 +32,11 @@
   <main id="app" class="shell">
     <section id="libraryView">
       <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
-      <div class="summary"><span id="summaryText"></span><span id="offlineStatus" class="status">Загрузка библиотеки…</span></div>
+      <div class="summary">
+        <div class="summary-start"><button id="newSongBtn" class="new-song-btn hidden" type="button">＋ Новая песня</button></div>
+        <span id="offlineStatus" class="status">Загрузка библиотеки…</span>
+        <span id="summaryText"></span>
+      </div>
       <div id="libraryList" class="list"></div>
     </section>
 
@@ -45,7 +48,10 @@
       <div class="controls" aria-label="Настройки песни">
         <div class="control-group"><span>Тональность</span><button id="transposeDown">−</button><strong id="transposeValue">0</strong><button id="transposeUp">+</button></div>
         <div class="control-group"><span>Текст</span><button id="fontDown">A−</button><button id="fontUp">A+</button></div>
-        <button id="editSongBtn" class="edit-song-btn">✎ Редактировать</button>
+        <div class="song-actions">
+          <button id="editSongBtn" class="edit-song-btn">✎ Редактировать</button>
+          <button id="publishSongBtn" class="publish-song-btn hidden" type="button"><span id="publishLabel">На сайт</span><span id="publishDot" class="sync-dot" aria-hidden="true"></span></button>
+        </div>
       </div>
       <div id="localEditStatus" class="local-edit-status hidden">Изменено на этом устройстве</div>
       <div id="songContent" class="song-content"></div>
