@@ -2,8 +2,12 @@ name: Publish queued songs
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-queued-songs.yml'
 
 permissions:
   contents: write
@@ -19,37 +23,36 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get OIDC token
         id: oidc
         run: |
+          audience='https://chords-api.serganizm.workers.dev'
+          encoded=$(python3 -c 'import urllib.parse,os; print(urllib.parse.quote(os.environ["AUD"], safe=""))')
           payload=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://chords-api.serganizm.workers.dev")
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${encoded}")
+          python3 -c 'import json,sys; json.load(sys.stdin)["value"]' <<<"$payload" >/dev/null
           token=$(printf '%s' "$payload" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
           echo "::add-mask::$token"
-          echo "token=$token" >> "$GITHUB_OUTPUT"
+          printf '%s' "$token" > oidc.token
+        env:
+          AUD: https://chords-api.serganizm.workers.dev
 
       - name: Fetch queued songs
-        id: queue
-        env:
-          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
-          curl -sS -H "Authorization: Bearer $OIDC_TOKEN" \
+          curl -sS -f -H "Authorization: Bearer $(cat oidc.token)" \
             https://chords-api.serganizm.workers.dev/pending > queue.json
           python3 - <<'PY'
           import json
           data = json.load(open("queue.json"))
+          if "error" in data:
+              raise SystemExit(data["error"])
           songs = data.get("songs") or []
           print(f"queued={len(songs)}")
           open("queue.count", "w").write(str(len(songs)))
           PY
 
       - name: Write songs and push
-        if: ${{ hashFiles('queue.count') }}
-        env:
-          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           count=$(cat queue.count)
           if [ "$count" = "0" ]; then
@@ -57,7 +60,7 @@ jobs:
             exit 0
           fi
           python3 - <<'PY'
-          import json, os, pathlib
+          import json, pathlib
           data = json.load(open("queue.json"))
           keys = []
           for song in data.get("songs") or []:
@@ -81,8 +84,8 @@ jobs:
             git commit -m "Publish queued songs from the site"
             git push
           fi
-          curl -sS -X POST \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $(cat oidc.token)" \
             -H "Content-Type: application/json" \
             --data @ack.json \
             https://chords-api.serganizm.workers.dev/pending
