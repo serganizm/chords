@@ -1,4 +1,5 @@
 const ALLOWED_ORIGINS = [
+  'https://c.wethead.ru',
   'https://serganizm.github.io',
   'http://127.0.0.1:8765',
   'http://localhost:8765',

@@ -13,7 +13,7 @@ Workflow [Deploy GitHub Pages](.github/workflows/deploy-pages.yml) запуск�
 **Build and deployment** выберите источник **GitHub Actions**. После завершения
 workflow сайт будет доступен по адресу:
 
-`https://serganizm.github.io/chords/`
+`https://c.wethead.ru/` (резерв: `https://serganizm.github.io/chords/`)
 
 Для локального обновления каталога нужна только Node.js:
 
