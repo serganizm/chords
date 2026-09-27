@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=36">
+  <link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
   <header class="topbar">
@@ -41,12 +41,12 @@
 
   <main id="app" class="shell">
     <section id="libraryView">
-      <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
-      <div class="summary">
-        <div class="summary-start"><button id="newSongBtn" class="new-song-btn hidden" type="button">＋ Новая песня</button></div>
-        <span id="offlineStatus" class="status">Загрузка библиотеки…</span>
-        <span id="summaryText"></span>
+      <div id="offlineStatus" class="status">Загрузка библиотеки…</div>
+      <div class="search-row">
+        <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
+        <button id="newSongBtn" class="new-song-btn hidden" type="button" aria-label="Новая песня">+</button>
       </div>
+      <div class="summary"><span id="summaryText"></span></div>
       <div id="libraryList" class="list"></div>
     </section>
 
