@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=30">
+  <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
   <header class="topbar">
@@ -113,8 +113,17 @@
       <div id="googleBtn" class="google-btn"></div>
     </div>
   </div>
+  <div id="exitDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="exitTitle">
+    <div class="editor-panel exit-panel">
+      <h2 id="exitTitle">Выйти из приложения?</h2>
+      <div class="editor-actions">
+        <button id="exitNo" class="secondary-btn" type="button">Нет</button>
+        <button id="exitYes" class="primary-btn" type="button">Да</button>
+      </div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=32"></script>
+  <script src="app.js?v=33"></script>
 </body>
 </html>
