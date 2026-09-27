@@ -29,7 +29,7 @@ files.forEach((filename, index) => {
   const targetDir = path.join(new URL(songsDir).pathname, artistDir);
   fs.mkdirSync(targetDir, { recursive: true });
   fs.writeFileSync(path.join(targetDir, songFile), text + '\n');
-  const id = index + 1;
+  const id = filename;
   const version = crypto.createHash('sha256').update(text).digest('hex').slice(0, 12);
   songs.push({ id, artist, title, file: relativeFile, source: filename, version });
   lyrics.push({ id, text });
