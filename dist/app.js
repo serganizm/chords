@@ -73,11 +73,15 @@ function appAtRoot(){return !state.song&&!state.artist&&!($('searchInput').value
 function exitDialogOpen(){return !$('exitDialog').classList.contains('hidden')}
 function isInnerView(data){return ['artist','song','editor','add','signin'].includes(data?.view)}
 function reinforceTrap(count=2){if(!isAndroid||leavingApp)return;for(let i=0;i<count;i++)history.pushState({view:'artists',trap:1},'')}
-function showExitDialog(){if(!isAndroid)return;$('exitDialog').classList.remove('hidden')}
+let exitGuardUntil=0,swipeClickUntil=0;
+function guardExit(){exitGuardUntil=Date.now()+320}
+function exitGuarded(){return Date.now()<exitGuardUntil}
+function showExitDialog(){if(!isAndroid||exitDialogOpen())return;$('exitDialog').classList.remove('hidden');guardExit()}
 function hideExitDialog(){$('exitDialog').classList.add('hidden')}
+function dismissExitDialog(){if(!exitDialogOpen()||exitGuarded())return;hideExitDialog();guardExit()}
 function leaveApp(){leavingApp=true;hideExitDialog();history.go(-history.length)}
 function pushNav(view){if(navQuiet)return;history.pushState(view,'')}
-function goBack(){if(exitDialogOpen())return;const now=Date.now();if(now-lastBack<450)return;const dialog=!$('editorDialog').classList.contains('hidden')||!$('addSongDialog').classList.contains('hidden')||!$('signInDialog').classList.contains('hidden');const inside=dialog||!!state.song||!!state.artist||!!($('searchInput').value||'').trim();if(!inside){if(isAndroid)showExitDialog();return}lastBack=now;if(history.state?.view&&history.state.view!=='artists')history.back();else if(!$('editorDialog').classList.contains('hidden'))closeEditor(true);else if(!$('addSongDialog').classList.contains('hidden'))closeAddSong(true);else if(!$('signInDialog').classList.contains('hidden'))closeSignIn(true);else if(state.song)showLibrary();else if(state.artist){state.artist=null;renderLibrary();window.scrollTo(0,0)}else{$('searchInput').value='';renderLibrary()}}
+function goBack(){if(exitDialogOpen()){dismissExitDialog();return}if(exitGuarded())return;const now=Date.now();if(now-lastBack<450)return;const dialog=!$('editorDialog').classList.contains('hidden')||!$('addSongDialog').classList.contains('hidden')||!$('signInDialog').classList.contains('hidden');const inside=dialog||!!state.song||!!state.artist||!!($('searchInput').value||'').trim();if(!inside){if(isAndroid)showExitDialog();return}lastBack=now;if(history.state?.view&&history.state.view!=='artists')history.back();else if(!$('editorDialog').classList.contains('hidden'))closeEditor(true);else if(!$('addSongDialog').classList.contains('hidden'))closeAddSong(true);else if(!$('signInDialog').classList.contains('hidden'))closeSignIn(true);else if(state.song)showLibrary();else if(state.artist){state.artist=null;renderLibrary();window.scrollTo(0,0)}else{$('searchInput').value='';renderLibrary()}}
 async function restoreNav(data){navQuiet=true;try{const view=data?.view||'artists';if(view==='editor'||view==='add'||view==='signin')return;if(!$('editorDialog').classList.contains('hidden'))closeEditor(true);if(!$('addSongDialog').classList.contains('hidden'))closeAddSong(true);if(!$('signInDialog').classList.contains('hidden'))closeSignIn(true);if(view==='song'){const draft=drafts.find(item=>item.id===data.id);if(draft){openDraft(draft,{skipHistory:true});return}const song=state.songs.find(item=>String(item.id)===String(data.id));if(song)await openSong(song,{skipHistory:true});return}stopScroll();state.song=null;state.artist=view==='artist'?data.artist||null:null;$('songView').classList.add('hidden');$('libraryView').classList.remove('hidden');$('offlineStatus').classList.remove('hidden');renderLibrary();updatePublishStatus();window.scrollTo(0,0)}finally{navQuiet=false}}
 function setTranspose(delta){state.transpose=Math.max(-11,Math.min(11,state.transpose+delta));renderSongText()}
 function setFont(delta){const size=Math.max(14,Math.min(30,(settings.fontSize||18)+delta));settings.fontSize=size;document.documentElement.style.setProperty('--song-size',size+'px');$('fontValue').textContent=size;persist()}
@@ -127,10 +131,11 @@ document.addEventListener('pointerdown',()=>{if(settings.keepAwake&&!wakeLock)re
 history.scrollRestoration='manual';
 history.replaceState({view:'artists'},'');
 if(isAndroid)reinforceTrap(4);
-window.addEventListener('popstate',()=>{lastBack=Date.now();if(leavingApp)return;const data=history.state||{view:'artists'};if(isAndroid&&(exitDialogOpen()||(appAtRoot()&&!isInnerView(data)))){reinforceTrap(2);if(!exitDialogOpen())showExitDialog();return}restoreNav(data.trap?{view:'artists'}:data)});
+window.addEventListener('popstate',()=>{lastBack=Date.now();if(leavingApp)return;const data=history.state||{view:'artists'};if(isAndroid&&exitDialogOpen()){reinforceTrap(2);dismissExitDialog();return}if(isAndroid&&appAtRoot()&&!isInnerView(data)){if(exitGuarded()){reinforceTrap(2);return}showExitDialog();reinforceTrap(2);return}restoreNav(data.trap?{view:'artists'}:data)});
 let edgeSwipe=null;
 document.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse')return;const x=event.clientX,edge=x<=28?'left':x>=innerWidth-28?'right':'';if(!edge){edgeSwipe=null;return}edgeSwipe={x,y:event.clientY,edge}},{passive:true});
-document.addEventListener('pointerup',event=>{if(!edgeSwipe)return;const dx=event.clientX-edgeSwipe.x,dy=event.clientY-edgeSwipe.y,fromLeft=edgeSwipe.edge==='left'&&dx>72,fromRight=edgeSwipe.edge==='right'&&dx<-72;edgeSwipe=null;if((fromLeft||fromRight)&&Math.abs(dx)>Math.abs(dy)*1.2)goBack()},{passive:true});
+document.addEventListener('pointerup',event=>{if(!edgeSwipe)return;const dx=event.clientX-edgeSwipe.x,dy=event.clientY-edgeSwipe.y,fromLeft=edgeSwipe.edge==='left'&&dx>72,fromRight=edgeSwipe.edge==='right'&&dx<-72;edgeSwipe=null;if((fromLeft||fromRight)&&Math.abs(dx)>Math.abs(dy)*1.2){swipeClickUntil=Date.now()+700;goBack()}},{passive:true});
+document.addEventListener('click',event=>{if(Date.now()>swipeClickUntil)return;event.preventDefault();event.stopPropagation()},{capture:true});
 document.addEventListener('pointercancel',()=>{edgeSwipe=null});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
 renderAccentMenu();initialize();
