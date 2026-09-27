@@ -52,6 +52,7 @@ function resolvePath(body, url) {
 }
 
 const EXTRA_ALLOWED = ['stabrovsky.g@gmail.com', 'alexsey.beltsov@gmail.com'];
+const NOTIFY_EMAIL = 'serganizm@gmail.com';
 
 function allowedEmails(env) {
   return [...new Set([
@@ -184,6 +185,40 @@ async function putGithubFile(env, path, text, message) {
   return { path, sha: data.content?.sha || data.commit?.sha || existing?.sha };
 }
 
+async function notifyNewSong({ artist, title, path, email, queued }) {
+  const status = queued
+    ? 'В очереди, на сайте появится после публикации'
+    : 'Записана в GitHub';
+  const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(NOTIFY_EMAIL)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': 'chords-worker',
+    },
+    body: JSON.stringify({
+      _subject: `Новая песня: ${artist} — ${title}`,
+      _template: 'box',
+      _captcha: 'false',
+      _replyto: email,
+      'Кто добавил': email,
+      'Исполнитель': artist,
+      'Название': title,
+      'Файл': path,
+      'Статус': status,
+    }),
+  });
+  if (!response.ok) throw new Error(`Почта ответила ${response.status}`);
+}
+
+function scheduleNotify(ctx, info) {
+  const task = notifyNewSong(info).catch(error => {
+    console.error('Не удалось отправить оповещение', error instanceof Error ? error.message : error);
+  });
+  if (ctx?.waitUntil) ctx.waitUntil(task);
+  return task;
+}
+
 async function enqueueSong(env, song) {
   if (!env.QUEUE) throw new Error('Очередь публикации не настроена');
   const key = `song:${Date.now()}:${crypto.randomUUID()}`;
@@ -213,7 +248,7 @@ async function ackQueuedSongs(env, keys) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
 
@@ -266,13 +301,18 @@ export default {
         const action = body.source ? 'Update' : 'Add';
         const message = `${action} lyrics for '${artist} - ${title}'`;
         const normalized = text.endsWith('\n') ? text : `${text}\n`;
+        const notify = action === 'Add' && user.email !== NOTIFY_EMAIL
+          ? { artist, title, path, email: user.email }
+          : null;
         try {
           await putGithubFile(env, path, text, message);
+          if (notify) scheduleNotify(ctx, { ...notify, queued: false });
           return json({ ok: true, path, queued: false }, 200, origin);
         } catch (error) {
           const failed = error instanceof Error ? error.message : '';
           if (!/отказал|не настроен|доступ/i.test(failed)) throw error;
           await enqueueSong(env, { path, text: normalized, message, artist, title });
+          if (notify) scheduleNotify(ctx, { ...notify, queued: true });
           return json({ ok: true, path, queued: true }, 200, origin);
         }
       }
