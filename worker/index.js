@@ -194,7 +194,9 @@ async function notifyNewSong({ artist, title, path, email, queued }) {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'User-Agent': 'chords-worker',
+      Origin: 'https://serganizm.github.io',
+      Referer: 'https://serganizm.github.io/chords/',
+      'User-Agent': 'Mozilla/5.0',
     },
     body: JSON.stringify({
       _subject: `Новая песня: ${artist} — ${title}`,
@@ -208,7 +210,10 @@ async function notifyNewSong({ artist, title, path, email, queued }) {
       'Статус': status,
     }),
   });
-  if (!response.ok) throw new Error(`Почта ответила ${response.status}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.success === false || data.success === 'false') {
+    throw new Error(data.message || `Почта ответила ${response.status}`);
+  }
 }
 
 function scheduleNotify(ctx, info) {
