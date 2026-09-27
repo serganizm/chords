@@ -51,7 +51,7 @@ function resolvePath(body, url) {
   return path;
 }
 
-const EXTRA_ALLOWED = ['stabrovsky.g@gmail.com'];
+const EXTRA_ALLOWED = ['stabrovsky.g@gmail.com', 'alexsey.beltsov@gmail.com'];
 
 function allowedEmails(env) {
   return [...new Set([
