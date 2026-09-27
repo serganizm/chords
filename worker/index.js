@@ -301,7 +301,7 @@ export default {
         const action = body.source ? 'Update' : 'Add';
         const message = `${action} lyrics for '${artist} - ${title}'`;
         const normalized = text.endsWith('\n') ? text : `${text}\n`;
-        const notify = action === 'Add' && user.email !== NOTIFY_EMAIL
+        const notify = action === 'Add'
           ? { artist, title, path, email: user.email }
           : null;
         try {
