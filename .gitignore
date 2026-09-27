@@ -1,3 +1,4 @@
 dist/catalog.json
+dist/lyrics.json
 dist/songs/
 worker/.wrangler/
