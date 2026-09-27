@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=29">
+  <link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
   <header class="topbar">
@@ -56,12 +56,10 @@
         <button id="favoriteBtn" class="favorite" aria-label="Добавить в избранное">☆</button>
       </div>
       <div class="controls" aria-label="Настройки песни">
-        <div class="control-group"><span>Тональность</span><button id="transposeDown">−</button><strong id="transposeValue">0</strong><button id="transposeUp">+</button></div>
-        <div class="control-group"><span>Текст</span><button id="fontDown">A−</button><button id="fontUp">A+</button></div>
-        <div class="song-actions">
-          <button id="editSongBtn" class="edit-song-btn">✎ Редактировать</button>
-          <button id="publishSongBtn" class="publish-song-btn hidden" type="button"><span id="publishLabel">На сайт</span><span id="publishDot" class="sync-dot" aria-hidden="true"></span></button>
-        </div>
+        <button id="publishSongBtn" class="control-group publish-song-btn hidden" type="button"><span id="publishLabel">На сайт</span><span class="control-chip"><span id="publishDot" class="sync-dot" aria-hidden="true"></span></span></button>
+        <button id="editSongBtn" class="control-group edit-song-btn" type="button"><span>Редактировать</span><span class="control-chip" aria-hidden="true">✎</span></button>
+        <div class="control-group"><span>Тональность</span><span class="control-step"><button id="transposeDown" type="button" aria-label="Ниже">−</button><strong id="transposeValue">0</strong><button id="transposeUp" type="button" aria-label="Выше">+</button></span></div>
+        <div class="control-group"><span>Текст</span><span class="control-step"><button id="fontDown" type="button" aria-label="Мельче">−</button><strong id="fontValue">18</strong><button id="fontUp" type="button" aria-label="Крупнее">+</button></span></div>
       </div>
       <div id="localEditStatus" class="local-edit-status hidden">Изменено на этом устройстве</div>
       <div id="publishWaitStatus" class="local-edit-status hidden">Отправлено в GitHub. Когда песня появится на сайте, нажмите «Обновить» вверху справа</div>
@@ -117,6 +115,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=29"></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>
