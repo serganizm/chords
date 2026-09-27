@@ -1,0 +1,28 @@
+name: Notify about songs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'songs/**'
+
+permissions:
+  contents: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mention the owner on the commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          message=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}" --jq '.commit.message | split("\n")[0]')
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}" --jq '[.files[].filename | select(startswith("songs/"))] | join("\n")')
+          if [ -z "$files" ]; then
+            echo "No files in songs/"
+            exit 0
+          fi
+          body=$(printf '@serganizm\n\n%s\n\n```\n%s\n```\n\nhttps://github.com/%s/commit/%s\n' \
+            "$message" "$files" "$GITHUB_REPOSITORY" "$GITHUB_SHA")
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -f body="$body"
