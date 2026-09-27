@@ -15,20 +15,13 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=37">
+  <link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body>
   <header class="topbar">
     <button id="backBtn" class="icon-btn hidden" aria-label="Назад">‹</button>
     <div class="brand"><span class="brand-icon">♪</span><span id="pageTitle">Аккорды</span></div>
     <div class="header-actions">
-      <button id="updateBtn" class="header-control" aria-label="Сбросить локальные изменения и загрузить библиотеку" title="Сбросить локальные изменения и загрузить библиотеку"><span class="header-control-icon">↻</span><span class="header-control-label">Обновить</span></button>
-      <button id="wakeBtn" class="header-control active" aria-label="Разрешить выключение экрана" title="Разрешить выключение экрана"><span id="wakeIcon" class="header-control-icon">●</span><span class="header-control-label">Экран</span></button>
-      <div id="accentWrap" class="accent-wrap">
-        <button id="accentBtn" class="header-control" aria-label="Цвет" title="Цвет" aria-haspopup="true" aria-expanded="false"><span class="accent-dot"></span><span class="header-control-label">Цвет</span></button>
-        <div id="accentMenu" class="accent-menu hidden" role="menu" aria-label="Цветовой акцент"></div>
-      </div>
-      <button id="themeBtn" class="header-control" aria-label="Сменить тему" title="Сменить тему"><span id="themeIcon" class="header-control-icon">☾</span><span class="header-control-label">Тема</span></button>
       <button id="accountBtn" class="account-btn" type="button" aria-label="Войти" title="Войти">
         <img id="accountAvatar" class="account-avatar hidden" alt="" referrerpolicy="no-referrer">
         <span id="accountInitial" class="account-initial hidden" aria-hidden="true"></span>
@@ -39,12 +32,23 @@
     </div>
   </header>
 
+  <div id="statusBand" class="status-band">
+    <div id="offlineStatus" class="status">Загрузка библиотеки…</div>
+    <button id="menuBtn" class="more-btn" type="button" aria-label="Меню" title="Меню" aria-haspopup="true" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+    <div id="appMenu" class="app-menu hidden" role="menu">
+      <button id="updateBtn" class="menu-item" type="button" aria-label="Сбросить локальные изменения и загрузить библиотеку" title="Сбросить локальные изменения и загрузить библиотеку"><span class="menu-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4v14"/><path d="M6 12l6 6 6-6"/></svg></span><span>Загрузить</span></button>
+      <button id="wakeBtn" class="menu-item" type="button" aria-label="Разрешить выключение экрана" title="Разрешить выключение экрана"><span class="menu-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span>Экран</span></button>
+      <button id="accentBtn" class="menu-item" type="button" aria-label="Цвет" title="Цвет" aria-haspopup="true" aria-expanded="false"><span class="menu-ico"><span class="accent-dot"></span></span><span>Цвет</span><span class="menu-chev" aria-hidden="true">›</span></button>
+      <button id="themeBtn" class="menu-item" type="button" aria-label="Сменить тему" title="Сменить тему"><span class="menu-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3a9 9 0 1 0 .2 18c1.1 0 1.8-.9 1.8-1.8 0-.6-.3-1.1-.7-1.5-.4-.4-.8-.9-.8-1.5 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.2 17 3 12 3z"/><circle cx="7.5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="7.2" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="7.2" r="1" fill="currentColor" stroke="none"/></svg></span><span>Тема</span></button>
+    </div>
+    <div id="accentMenu" class="accent-menu hidden" role="menu" aria-label="Цветовой акцент"></div>
+  </div>
+
   <main id="app" class="shell">
     <section id="libraryView">
-      <div id="offlineStatus" class="status">Загрузка библиотеки…</div>
       <div class="search-row">
-        <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
         <button id="newSongBtn" class="new-song-btn hidden" type="button" aria-label="Новая песня">+</button>
+        <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Найти песню или исполнителя" autocomplete="off"></label>
       </div>
       <div class="summary"><span id="summaryText"></span></div>
       <div id="libraryList" class="list"></div>
@@ -62,7 +66,7 @@
         <div class="control-group"><span>Текст</span><span class="control-step"><button id="fontDown" type="button" aria-label="Мельче">−</button><strong id="fontValue">18</strong><button id="fontUp" type="button" aria-label="Крупнее">+</button></span></div>
       </div>
       <div id="localEditStatus" class="local-edit-status hidden">Изменено на этом устройстве</div>
-      <div id="publishWaitStatus" class="local-edit-status hidden">Отправлено в GitHub. Когда песня появится на сайте, нажмите «Обновить» вверху справа</div>
+      <div id="publishWaitStatus" class="local-edit-status hidden">Отправлено в GitHub. Когда песня появится на сайте, нажмите «Загрузить» в меню</div>
       <div id="songContent" class="song-content"></div>
       <div class="scroll-dock">
         <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
@@ -124,6 +128,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=36"></script>
+  <script src="app.js?v=38"></script>
 </body>
 </html>
