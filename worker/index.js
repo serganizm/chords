@@ -169,6 +169,7 @@ async function getGithubFile(env, path) {
 async function putGithubFile(env, path, text, message) {
   const normalized = text.endsWith('\n') ? text : `${text}\n`;
   const existing = await getGithubFile(env, path);
+  if (existing && existing.text.trim() === normalized.trim()) return { path, sha: existing.sha, unchanged: true };
   const branch = env.GITHUB_BRANCH || 'main';
   const { response, data } = await githubFile(env, path, {
     method: 'PUT',

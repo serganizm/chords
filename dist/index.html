@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
   <header class="topbar">
@@ -97,14 +97,14 @@
   <div id="addSongDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="addSongTitle">
     <div class="editor-panel">
       <div class="editor-heading"><div><p class="eyebrow">Новая песня</p><h2 id="addSongTitle">Добавить в библиотеку</h2></div><button id="addSongClose" class="icon-btn" aria-label="Закрыть">×</button></div>
-      <p class="editor-help">Песня сохранится в GitHub как файл в папке songs. Через минуту нажмите Обновить.</p>
+      <p class="editor-help">Песня сохранится на этом устройстве. В списке нажмите «Отправить», чтобы записать её в GitHub.</p>
       <label class="editor-field">Исполнитель<input id="addSongArtist" type="text" autocomplete="off"></label>
       <label class="editor-field">Название<input id="addSongName" type="text" autocomplete="off"></label>
       <textarea id="addSongText" spellcheck="false" aria-label="Текст песни с аккордами"></textarea>
       <div class="editor-actions">
         <span class="editor-spacer"></span>
         <button id="addSongCancel" class="secondary-btn">Отмена</button>
-        <button id="addSongSave" class="primary-btn">Добавить</button>
+        <button id="addSongSave" class="primary-btn">Сохранить</button>
       </div>
     </div>
   </div>
@@ -117,6 +117,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=27"></script>
+  <script src="app.js?v=29"></script>
 </body>
 </html>
