@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=39">
+  <link rel="stylesheet" href="styles.css?v=42">
 </head>
 <body>
   <header class="topbar">
@@ -68,19 +68,20 @@
       <div id="localEditStatus" class="local-edit-status hidden">Изменено на этом устройстве</div>
       <div id="publishWaitStatus" class="local-edit-status hidden">Отправлено в GitHub. Когда песня появится на сайте, нажмите «Загрузить» в меню</div>
       <div id="songContent" class="song-content"></div>
-      <div class="scroll-dock">
-        <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
-        <div class="speed-control">
-          <span>Скорость <b id="speedValue">1</b></span>
-          <div class="speed-slider">
-            <button type="button" id="speedDown" class="speed-btn" aria-label="Медленнее">−</button>
-            <input id="speedRange" type="range" min="1" max="8" value="1">
-            <button type="button" id="speedUp" class="speed-btn" aria-label="Быстрее">+</button>
-          </div>
-        </div>
-      </div>
     </section>
   </main>
+
+  <div id="scrollDock" class="scroll-dock hidden">
+    <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
+    <div class="speed-control">
+      <span>Скорость <b id="speedValue">1</b></span>
+      <div class="speed-slider">
+        <button type="button" id="speedDown" class="speed-btn" aria-label="Медленнее">−</button>
+        <input id="speedRange" type="range" min="1" max="8" value="1">
+        <button type="button" id="speedUp" class="speed-btn" aria-label="Быстрее">+</button>
+      </div>
+    </div>
+  </div>
 
   <div id="editorDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
     <div class="editor-panel">
@@ -128,6 +129,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=41"></script>
+  <script src="app.js?v=42"></script>
 </body>
 </html>
