@@ -28,6 +28,11 @@ function cleanPart(value) {
   return String(value || '').replace(/[<>:"/\\|?*]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/** Keep leading indent on the first content line (tabs/chords). Only strip edge blank lines. */
+function normalizeSongText(value) {
+  return String(value || '').replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '');
+}
+
 function pathFromNames(artist, title) {
   const a = cleanPart(artist);
   const t = cleanPart(title);
@@ -169,7 +174,7 @@ async function getGithubFile(env, path) {
 async function putGithubFile(env, path, text, message) {
   const normalized = text.endsWith('\n') ? text : `${text}\n`;
   const existing = await getGithubFile(env, path);
-  if (existing && existing.text.trim() === normalized.trim()) return { path, sha: existing.sha, unchanged: true };
+  if (existing && normalizeSongText(existing.text) === normalizeSongText(normalized)) return { path, sha: existing.sha, unchanged: true };
   const branch = env.GITHUB_BRANCH || 'main';
   const { response, data } = await githubFile(env, path, {
     method: 'PUT',
@@ -260,8 +265,8 @@ export default {
         const body = await request.json().catch(() => ({}));
         const artist = String(body.artist || '').trim();
         const title = String(body.title || '').trim();
-        const text = String(body.text || '').replace(/\r\n?/g, '\n').trim();
-        if (!text) return json({ error: 'Текст песни не может быть пустым' }, 400, origin);
+        const text = normalizeSongText(body.text || '');
+        if (!text.trim()) return json({ error: 'Текст песни не может быть пустым' }, 400, origin);
         if (text.length > MAX_TEXT) return json({ error: 'Текст слишком длинный' }, 400, origin);
         const path = resolvePath(body, url);
         const action = body.source ? 'Update' : 'Add';

@@ -19,9 +19,12 @@ files.forEach((filename, index) => {
   if (parts.length === 1 && rawName.includes('-')) parts = rawName.split(/-(.+)/).filter(Boolean);
   const artist = (parts.shift() || 'Без исполнителя').trim();
   const title = (parts.join(' — ') || rawName).replace(/_+$/g, '').trim();
-  let text = fs.readFileSync(new URL(filename, sourceDir), 'utf8').replace(/\r\n?/g, '\n').trim();
+  // Keep leading indent on the first content line (important for aligned tabs).
+  // Only strip blank lines at the edges — never String#trim(), which eats that indent.
+  const normalizeSongText = value => String(value || '').replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '');
+  let text = normalizeSongText(fs.readFileSync(new URL(filename, sourceDir), 'utf8'));
   const lines = text.split('\n');
-  if (lines[0]?.trim().replace(/_+$/g, '') === rawName.replace(/_+$/g, '')) text = lines.slice(1).join('\n').trim();
+  if (lines[0]?.trim().replace(/_+$/g, '') === rawName.replace(/_+$/g, '')) text = normalizeSongText(lines.slice(1).join('\n'));
 
   const artistDir = cleanPart(artist);
   const songFile = `${cleanPart(title)}.txt`;
