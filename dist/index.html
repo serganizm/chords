@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=44">
+  <link rel="stylesheet" href="styles.css?v=47">
 </head>
 <body>
   <header class="topbar">
@@ -72,15 +72,15 @@
   </main>
 
   <div id="scrollDock" class="scroll-dock hidden">
-    <button id="scrollToggle" class="primary-btn"><span id="scrollIcon">▶</span> Автопрокрутка</button>
-    <div class="speed-control">
-      <span>Скорость <b id="speedValue">1</b></span>
-      <div class="speed-slider">
-        <button type="button" id="speedDown" class="speed-btn" aria-label="Медленнее">−</button>
-        <input id="speedRange" type="range" min="1" max="8" value="1">
-        <button type="button" id="speedUp" class="speed-btn" aria-label="Быстрее">+</button>
-      </div>
+    <div class="speed-control" role="group" aria-label="Скорость автопрокрутки">
+      <button type="button" id="speedDown" class="speed-btn" aria-label="Медленнее">−</button>
+      <output id="speedValue" for="speedRange">1</output>
+      <button type="button" id="speedUp" class="speed-btn" aria-label="Быстрее">+</button>
+      <input id="speedRange" type="range" min="1" max="8" value="1" hidden>
     </div>
+    <button type="button" id="scrollToggle" class="scroll-toggle" aria-label="Включить автопрокрутку" aria-pressed="false" title="Включить автопрокрутку">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="scroll-play" d="M8 5 19 12 8 19Z"/><path class="scroll-pause" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+    </button>
   </div>
 
   <div id="editorDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
@@ -129,6 +129,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=44"></script>
+  <script src="app.js?v=45"></script>
 </body>
 </html>
