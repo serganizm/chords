@@ -21,6 +21,13 @@ workflow сайт будет доступен по адресу:
 node scripts/build-songs.mjs
 ```
 
+## Аппликатуры аккордов
+
+По нажатию на аккорд в песне открывается окно с вариантами его исполнения на
+гитаре. Данные хранятся в [`dist/guitar-chords.json`](dist/guitar-chords.json) и
+сохраняются для работы офлайн. Источник — [chords-db](https://github.com/tombatossals/chords-db)
+Давида Руберта, лицензия MIT: [`dist/chords-db-LICENSE.txt`](dist/chords-db-LICENSE.txt).
+
 ## Вход Google и публикация песен
 
 Добавлять и править песни в GitHub может только аккаунт из `ALLOWED_EMAILS`.

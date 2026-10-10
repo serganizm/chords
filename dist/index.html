@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png?v=25" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=25">
-  <link rel="stylesheet" href="styles.css?v=47">
+  <link rel="stylesheet" href="styles.css?v=48">
 </head>
 <body>
   <header class="topbar">
@@ -83,6 +83,29 @@
     </button>
   </div>
 
+  <div id="chordDialog" class="chord-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="chordDialogTitle">
+    <div class="chord-dialog-panel">
+      <div class="chord-dialog-heading">
+        <div><p class="chord-dialog-kicker">Аппликатура · гитара</p><h2 id="chordDialogTitle"></h2></div>
+        <button id="chordDialogClose" class="chord-dialog-close" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <p class="chord-dialog-subhead">Стандартный строй · E A D G B e</p>
+      <p id="chordDialogMessage" class="chord-dialog-message hidden" role="status"></p>
+      <div id="chordDiagramCard" class="chord-diagram-card hidden">
+        <p id="chordPositionName" class="chord-position-name"></p>
+        <svg id="chordDiagram" viewBox="0 0 310 325" role="img"></svg>
+        <span id="chordFretCode" class="chord-fret-code"></span>
+      </div>
+      <p id="chordInstruction" class="chord-instruction hidden"></p>
+      <nav id="chordPager" class="chord-pager hidden" aria-label="Варианты аккорда">
+        <button id="chordPrev" class="chord-arrow" type="button" aria-label="Предыдущий вариант">‹</button>
+        <div class="chord-pager-center"><b id="chordCounter"></b><span>варианты аппликатуры</span></div>
+        <button id="chordNext" class="chord-arrow" type="button" aria-label="Следующий вариант">›</button>
+      </nav>
+      <div id="chordLegend" class="chord-legend hidden"><span>○ открытая струна</span><span>× не играть</span><span>1–4 пальцы</span></div>
+    </div>
+  </div>
+
   <div id="editorDialog" class="editor-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
     <div class="editor-panel">
       <div class="editor-heading"><div><p class="eyebrow">Локальное редактирование</p><h2 id="editorTitle">Редактировать песню</h2></div><button id="editorClose" class="icon-btn" aria-label="Закрыть">×</button></div>
@@ -129,6 +152,6 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="app.js?v=45"></script>
+  <script src="app.js?v=46"></script>
 </body>
 </html>

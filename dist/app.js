@@ -59,7 +59,65 @@ function chordPartCore(part){let core=String(part).replace(/^[\|:,\[\]{}'`]+|[\|
 function isChordLine(line){if(isTabLine(line))return false;const trimmed=line.trim();if(!trimmed||trimmed.length>=100)return false;const parts=latinizeChordNotes(trimmed).split(/\s+/).filter(Boolean);if(!parts.length)return false;let hasChord=false;for(const part of parts){const core=chordPartCore(part);if(!core)continue;if(chordBody.test(core)){hasChord=true;continue}if(chordFiller.test(core))continue;return false}return hasChord}
 function alignedSongLines(text){const lines=text.split('\n'),first=lines.findIndex(line=>line.trim());if(first>=0&&isChordLine(lines[first])&&!/^\s/.test(lines[first])){const next=lines.slice(first+1).find(line=>line.trim()),indent=next?.match(/^\s+/)?.[0];if(indent)lines[first]=indent+lines[first]}return lines}
 function transposeChord(token,steps){const match=latinizeChordNotes(token).match(chordToken);if(!match)return token;const key=match[1].toUpperCase()+match[2],index=NOTE_INDEX[key];if(index===undefined)return token;let suffix=match[3];suffix=suffix.replace(/\/([A-H])([#b]?)/gi,(_,n,a)=>'/'+NOTES_SHARP[(NOTE_INDEX[n.toUpperCase()+a]+steps+120)%12]);return NOTES_SHARP[(index+steps+120)%12]+suffix}
-function renderSongText(){const html=alignedSongLines(state.song.text).map(line=>{if(isTabLine(line))return`<div class="song-line tab-line">${escapeHtml(line)||' '}</div>`;if(isChordLine(line)){const changed=latinizeChordNotes(line).replace(/[A-H](?:#|b)?[^\s|:,()\[\]]*/gi,token=>transposeChord(token,state.transpose));return`<div class="song-line chord-line">${escapeHtml(changed)||' '}</div>`}return`<div class="song-line">${escapeHtml(line)||' '}</div>`}).join('');$('songContent').innerHTML=html;$('transposeValue').textContent=state.transpose>0?`+${state.transpose}`:state.transpose}
+function renderChordLine(line){return line.replace(/\S+/g,part=>{const chord=chordPartCore(part);if(!chordBody.test(chord))return escapeHtml(part);const start=part.indexOf(chord);if(start<0)return escapeHtml(part);return`${escapeHtml(part.slice(0,start))}<button class="song-chord" type="button" data-chord="${escapeHtml(chord)}" aria-label="Показать аппликатуры ${escapeHtml(chord)}">${escapeHtml(chord)}</button>${escapeHtml(part.slice(start+chord.length))}`})}
+function renderSongText(){const html=alignedSongLines(state.song.text).map(line=>{if(isTabLine(line))return`<div class="song-line tab-line">${escapeHtml(line)||' '}</div>`;if(isChordLine(line)){const changed=latinizeChordNotes(line).replace(/[A-H](?:#|b)?[^\s|:,()\[\]]*/gi,token=>transposeChord(token,state.transpose));return`<div class="song-line chord-line">${renderChordLine(changed)||' '}</div>`}return`<div class="song-line">${escapeHtml(line)||' '}</div>`}).join('');$('songContent').innerHTML=html;$('transposeValue').textContent=state.transpose>0?`+${state.transpose}`:state.transpose}
+
+// Аппликатуры читаются из локального файла; полная база заранее сохраняется service worker для офлайн-режима.
+let chordDatabasePromise=null,chordDialogPositions=[],chordDialogIndex=0,chordDialogSymbol='',chordDialogNotice='',chordDialogButton=null,chordDialogOverflow='';
+const CHORD_DB_KEYS=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+function loadChordDatabase(){if(!chordDatabasePromise)chordDatabasePromise=fetch('guitar-chords.json').then(response=>{if(!response.ok)throw new Error('База аппликатур недоступна');return response.json()}).catch(error=>{chordDatabasePromise=null;throw error});return chordDatabasePromise}
+function dbNote(note){const match=note.match(/^([A-H])([#b]?)$/i);if(!match)return null;const value=NOTE_INDEX[match[1].toUpperCase()+match[2]];return value===undefined?null:CHORD_DB_KEYS[value]}
+function chordEntries(database,symbol){const match=symbol.match(/^([A-H])([#b]?)(.*)$/i);if(!match)return[];const key=dbNote(match[1]+match[2]);if(!key)return[];let suffix=match[3];if(!suffix||suffix==='maj')suffix='major';else if(suffix==='m'||suffix==='min')suffix='minor';suffix=suffix.replace(/\/([A-H])([#b]?)/gi,(_,letter,accidental)=>'/'+(dbNote(letter+accidental)||letter+accidental));return(database.chords[key.replace('#','sharp')]||[]).find(entry=>entry.suffix===suffix)?.positions||[]}
+function lookupChord(database,symbol){
+  let normalized=symbol.replace(/\((?:[IVX]+|\d+)\)$/i,''),notice=normalized!==symbol?'Помета позиции из текста не учитывается.':'';
+  normalized=normalized.replace(/^([A-H])m#(?=\/|$|\d)/i,'$1#m').replace(/^([A-H])m?sus([24])$/i,'$1sus$2').replace(/^([A-H][#b]?)M$/,'$1maj').replace(/7-5$/i,'7b5');
+  if(normalized!==symbol&&!notice)notice=`Показаны варианты для ${normalized}.`;
+  let positions=chordEntries(database,normalized);
+  if(!positions.length&&normalized.includes('/')){const main=normalized.split('/')[0];positions=chordEntries(database,main);if(positions.length)notice=`Схемы с указанным басом нет. Показаны варианты ${main} без него.`}
+  return{positions,notice};
+}
+function chordBarres(position){return(position.barres||[]).filter(barre=>position.frets.filter(fret=>fret===barre).length>=2)}
+function chordPositionName(position){const base=position.baseFret||1,barre=chordBarres(position)[0];if(barre)return`Баррэ на ${base+barre-1}-м ладу`;if(base===1)return position.frets.includes(0)?'Открытая позиция':'Позиция у порожка';return`Позиция с ${base}-го лада`}
+function chordPositionCode(position){return position.frets.map(fret=>fret<0?'x':fret===0?'0':String((position.baseFret||1)+fret-1)).join(' ')}
+function chordPositionInstruction(position){const barre=chordBarres(position)[0];if(barre)return`Указательным пальцем зажмите струны на ${position.baseFret+barre-1}-м ладу. Остальные пальцы поставьте по схеме.`;return position.frets.includes(0)?'Поставьте пальцы по схеме. Струны с символом × не играйте, ○ оставьте открытыми.':'Поставьте пальцы по схеме. Струны с символом × не играйте.'}
+function drawChordDiagram(position){
+  const x=string=>50+string*42,y=fret=>64+(fret-.5)*52,base=position.baseFret||1;
+  let svg='';
+  for(let fret=0;fret<=4;fret++)svg+=`<line x1="50" y1="${64+fret*52}" x2="260" y2="${64+fret*52}" stroke="#69728b" stroke-width="${fret===0&&base===1?6:2}"/>`;
+  for(let string=0;string<6;string++)svg+=`<line x1="${x(string)}" y1="64" x2="${x(string)}" y2="272" stroke="#69728b" stroke-width="2"/>`;
+  if(base!==1)svg+=`<text x="23" y="95" text-anchor="middle" fill="var(--accent)" font-size="20" font-weight="800">${base}</text>`;
+  position.frets.forEach((fret,string)=>{if(fret<=0)svg+=`<text x="${x(string)}" y="48" text-anchor="middle" font-size="26" font-weight="700" fill="var(--accent)">${fret===0?'○':'×'}</text>`});
+  const drawnBarres=new Set();
+  for(const barre of chordBarres(position)){const strings=position.frets.map((fret,index)=>fret===barre?index:-1).filter(index=>index>=0);drawnBarres.add(barre);const first=strings[0],last=strings.at(-1),left=x(first)-11,width=x(last)-x(first)+22;svg+=`<rect x="${left}" y="${y(barre)-16}" width="${width}" height="32" rx="16" fill="var(--accent)"/><text x="${left+width/2}" y="${y(barre)+7}" text-anchor="middle" fill="white" font-size="21" font-weight="800">${position.fingers[first]||1}</text>`}
+  position.frets.forEach((fret,string)=>{if(fret<=0||drawnBarres.has(fret))return;const finger=position.fingers[string];svg+=`<circle cx="${x(string)}" cy="${y(fret)}" r="18" fill="var(--accent)"/>${finger?`<text x="${x(string)}" y="${y(fret)+7}" text-anchor="middle" fill="white" font-size="21" font-weight="800">${finger}</text>`:''}`});
+  ['E','A','D','G','B','e'].forEach((label,string)=>svg+=`<text x="${x(string)}" y="305" text-anchor="middle" fill="#5a637c" font-size="20" font-weight="700">${label}</text>`);
+  $('chordDiagram').innerHTML=svg;
+}
+function renderChordDialog(){
+  const position=chordDialogPositions[chordDialogIndex];
+  $('chordDialogMessage').classList.toggle('hidden',!!position);
+  $('chordDiagramCard').classList.toggle('hidden',!position);
+  $('chordInstruction').classList.toggle('hidden',!position);
+  $('chordPager').classList.toggle('hidden',!position);
+  $('chordLegend').classList.toggle('hidden',!position);
+  if(!position)return;
+  $('chordPositionName').textContent=chordPositionName(position);
+  $('chordFretCode').textContent=chordPositionCode(position);
+  $('chordInstruction').textContent=[chordDialogNotice,chordPositionInstruction(position)].filter(Boolean).join(' ');
+  $('chordCounter').textContent=`${chordDialogIndex+1} / ${chordDialogPositions.length}`;
+  $('chordPrev').disabled=$('chordNext').disabled=chordDialogPositions.length<2;
+  $('chordDiagram').setAttribute('aria-label',`Аккорд ${chordDialogSymbol}, ${chordPositionName(position)}, ${chordPositionCode(position)}`);
+  drawChordDiagram(position);
+}
+async function openChordDialog(symbol,button){
+  stopScroll();chordDialogSymbol=symbol;chordDialogNotice='';chordDialogButton=button;chordDialogPositions=[];chordDialogIndex=0;
+  $('chordDialogTitle').textContent=symbol;$('chordDialogMessage').textContent='Загружаю аппликатуры…';renderChordDialog();
+  chordDialogOverflow=document.body.style.overflow;document.body.style.overflow='hidden';$('chordDialog').classList.remove('hidden');$('chordDialogClose').focus();
+  try{const database=await loadChordDatabase();if($('chordDialog').classList.contains('hidden')||chordDialogSymbol!==symbol)return;const found=lookupChord(database,symbol);chordDialogPositions=found.positions;chordDialogNotice=found.notice;if(!chordDialogPositions.length)$('chordDialogMessage').textContent='Для этого обозначения пока нет готовой аппликатуры в локальной базе.';renderChordDialog()}
+  catch{if(!$('chordDialog').classList.contains('hidden')&&chordDialogSymbol===symbol)$('chordDialogMessage').textContent='Не удалось загрузить базу аппликатур. Попробуйте открыть аккорд ещё раз.'}
+}
+function closeChordDialog(){if($('chordDialog').classList.contains('hidden'))return;$('chordDialog').classList.add('hidden');document.body.style.overflow=chordDialogOverflow;if(chordDialogButton?.isConnected)chordDialogButton.focus();chordDialogButton=null}
+function moveChordDialog(step){if(!chordDialogPositions.length)return;chordDialogIndex=(chordDialogIndex+step+chordDialogPositions.length)%chordDialogPositions.length;renderChordDialog()}
 function songSource(song){return song.source||`${song.artist} - ${song.title}.txt`}
 function localEditFor(song){const edit=song&&localEdits[song.id];if(!edit?.text)return null;if(edit.source&&edit.source!==songSource(song))return null;return edit}
 function adoptLibraryIdentity(oldCatalog,catalog){const ids=new Set(catalog.songs.map(song=>song.id));let editsChanged=false;for(const key of Object.keys(localEdits)){const song=catalog.songs.find(item=>item.id===key);if(!song||(localEdits[key].source&&localEdits[key].source!==songSource(song))){delete localEdits[key];editsChanged=true}}if(editsChanged)persistLocalEdits();const oldById=new Map((oldCatalog?.songs||[]).map(song=>[String(song.id),song])),bySource=new Map(catalog.songs.map(song=>[song.source,song])),kept=[];let favChanged=false;for(const id of favorites){if(ids.has(id)){kept.push(id);continue}favChanged=true;const next=bySource.get(oldById.get(String(id))?.source);if(next)kept.push(next.id)}if(favChanged){favorites=new Set(kept);localStorage.setItem('chords-favorites',JSON.stringify(kept))}let pendingChanged=false;for(const key of Object.keys(pendingPublish)){if(!ids.has(key)){delete pendingPublish[key];pendingChanged=true}}if(pendingChanged)persistPending()}
@@ -148,4 +206,10 @@ document.addEventListener('pointerup',event=>{if(!edgeSwipe)return;const dx=even
 document.addEventListener('click',event=>{if(Date.now()>swipeClickUntil)return;event.preventDefault();event.stopPropagation()},{capture:true});
 document.addEventListener('pointercancel',()=>{edgeSwipe=null});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
+$('songContent').addEventListener('click',event=>{const button=event.target.closest('.song-chord');if(button)openChordDialog(button.dataset.chord,button)});
+$('chordDialogClose').addEventListener('click',closeChordDialog);
+$('chordDialog').addEventListener('click',event=>{if(event.target===$('chordDialog'))closeChordDialog()});
+$('chordPrev').addEventListener('click',()=>moveChordDialog(-1));
+$('chordNext').addEventListener('click',()=>moveChordDialog(1));
+document.addEventListener('keydown',event=>{if($('chordDialog').classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeChordDialog()}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();event.stopImmediatePropagation();moveChordDialog(event.key==='ArrowLeft'?-1:1)}else if(event.key==='Tab'){const items=[$('chordDialogClose'),$('chordPrev'),$('chordNext')].filter(item=>!item.closest('.hidden')&&!item.disabled);const first=items[0],last=items.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}}},true);
 renderAccentMenu();initialize();
